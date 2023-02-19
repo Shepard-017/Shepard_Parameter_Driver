@@ -38,11 +38,34 @@ def maintain_conn(peer_ip: str, peer_port: int, sockfd):
     return
 
 # Listen to OSC from VRC
-def osc_listener(address: str, args: list, val: float) -> None:
-    message = "{} {}".format(address, val)
-    print(message)
-    args[2].sendto(message.encode(), (str(args[0]), int(args[1])))
-    return
+# def osc_listener(address: str, args: list, val: float) -> None:
+#     message = "{} {}".format(address, val)
+#     print(message)
+#     args[2].sendto(message.encode(), (str(args[0]), int(args[1])))
+#     return
+
+def sender_gui(peer_ip: str, peer_port: int, sockfd):
+    import PySimpleGUI as sg
+    sg.ChangeLookAndFeel('DarkGreen4')
+    form = sg.FlexForm('Shepard Size Controller', default_element_size=(40,1))
+
+    layout = [
+        [sg.Slider(range=(0,100), orientation='h', default_value=0, key='ShepardScale', enable_events = True)]
+    ]
+
+    window = sg.Window('Shepard Size Controller', layout, finalize = True)
+
+    while(True):
+        event,values = window.read()
+        if(event == sg.WIN_CLOSED or event == 'Cancel'):
+            break
+        # print(f"/avatar/parameters/{event} {(values['ShepardScale'])/100}")
+        address = ("/avatar/parameters/{}".format(event))
+        val     = float((values['ShepardScale'])/100)
+        message = "{} {}".format(address, val)
+        print(message)
+        sockfd.sendto(message.encode(), (peer_ip,peer_port))
+    window.close()
 
 # Send OSC information to recipient
 def send_osc(peer_ip: str, peer_port: int, sockfd):
@@ -51,7 +74,7 @@ def send_osc(peer_ip: str, peer_port: int, sockfd):
 
     vrc_listener = osc_server.BlockingOSCUDPServer((local_ip, osc_port), dispatcher)
     dispatcher.map("*",osc_listener,peer_ip,peer_port,sockfd)
-
+    # sender_gui(peer_ip,peer_port,sockfd)
     while(True):
         vrc_listener.handle_request()
     return
@@ -96,7 +119,7 @@ def main():
     #   One to translate OSC info
 
     t1 = threading.Thread(target = maintain_conn,   args = (peer_ip, peer_port, sockfd))
-    t2 = threading.Thread(target = send_osc,        args = (peer_ip, peer_port, sockfd))
+    t2 = threading.Thread(target = sender_gui,      args = (peer_ip, peer_port, sockfd))
     t1.start()
     t2.start()
     return

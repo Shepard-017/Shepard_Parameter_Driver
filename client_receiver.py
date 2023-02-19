@@ -74,12 +74,15 @@ def main():
 
         if (message == b'\0'):
             continue
-        
+
         if( not (addr[0] == peer_ip)):
             continue
 
         message = message.decode()
         message = message.split(' ')
+        if(len(message) != 2):
+            print(message[0])
+            continue
         address = message[0]
         value   = message[1]
 
